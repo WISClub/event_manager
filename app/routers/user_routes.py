@@ -21,7 +21,7 @@ Key Highlights:
 from datetime import timedelta
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Response, status, Request
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_async_db
 from app.schemas.pagination_schema import EnhancedPagination
@@ -31,10 +31,12 @@ from app.utils.common import create_access_token
 from app.utils.link_generation import create_user_links, generate_pagination_links
 from app.dependencies import get_settings
 router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+http_bearer_scheme = HTTPBearer()
 settings = get_settings()
+
+
 @router.get("/users/{user_id}", response_model=UserResponse, name="get_user", tags=["User Management"])
-async def get_user(user_id: UUID, request: Request, db: AsyncSession = Depends(get_async_db), token: str = Depends(oauth2_scheme)):
+async def get_user(user_id: UUID, request: Request, db: AsyncSession = Depends(get_async_db), token: str = Depends(http_bearer_scheme)):
     """
     Endpoint to fetch a user by their unique identifier (UUID).
 
@@ -49,7 +51,8 @@ async def get_user(user_id: UUID, request: Request, db: AsyncSession = Depends(g
     """
     user = await UserService.get_by_id(db, user_id)
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     return UserResponse.model_construct(
         id=user.id,
@@ -58,7 +61,7 @@ async def get_user(user_id: UUID, request: Request, db: AsyncSession = Depends(g
         last_login_at=user.last_login_at,
         created_at=user.created_at,
         updated_at=user.updated_at,
-        links=create_user_links(user.id, request)  
+        links=create_user_links(user.id, request)
     )
 
 # Additional endpoints for update, delete, create, and list users follow a similar pattern, using
@@ -68,8 +71,9 @@ async def get_user(user_id: UUID, request: Request, db: AsyncSession = Depends(g
 # This approach not only ensures that the API is secure and efficient but also promotes a better client
 # experience by adhering to REST principles and providing self-discoverable operations.
 
+
 @router.put("/users/{user_id}", response_model=UserResponse, name="update_user", tags=["User Management"])
-async def update_user(user_id: UUID, user_update: UserUpdate, request: Request, db: AsyncSession = Depends(get_async_db), token: str = Depends(oauth2_scheme)):
+async def update_user(user_id: UUID, user_update: UserUpdate, request: Request, db: AsyncSession = Depends(get_async_db), token: str = Depends(http_bearer_scheme)):
     """
     Update user information.
 
@@ -79,7 +83,8 @@ async def update_user(user_id: UUID, user_update: UserUpdate, request: Request, 
     user_data = user_update.model_dump(exclude_unset=True)
     updated_user = await UserService.update(db, user_id, user_data)
     if not updated_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     return UserResponse.model_construct(
         id=updated_user.id,
@@ -96,7 +101,7 @@ async def update_user(user_id: UUID, user_update: UserUpdate, request: Request, 
 
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT, name="delete_user", tags=["User Management"])
-async def delete_user(user_id: UUID, db: AsyncSession = Depends(get_async_db), token: str = Depends(oauth2_scheme)):
+async def delete_user(user_id: UUID, db: AsyncSession = Depends(get_async_db), token: str = Depends(http_bearer_scheme)):
     """
     Delete a user by their ID.
 
@@ -104,13 +109,13 @@ async def delete_user(user_id: UUID, db: AsyncSession = Depends(get_async_db), t
     """
     success = await UserService.delete(db, user_id)
     if not success:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-
 @router.post("/users/", response_model=UserResponse, status_code=status.HTTP_201_CREATED, tags=["User Management"], name="create_user")
-async def create_user(user: UserCreate, request: Request, db: AsyncSession = Depends(get_async_db), token: str = Depends(oauth2_scheme)):
+async def create_user(user: UserCreate, request: Request, db: AsyncSession = Depends(get_async_db), token: str = Depends(http_bearer_scheme)):
     """
     Create a new user.
 
@@ -128,13 +133,14 @@ async def create_user(user: UserCreate, request: Request, db: AsyncSession = Dep
     """
     existing_user = await UserService.get_by_username(db, user.username)
     if existing_user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exists")
-    
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exists")
+
     created_user = await UserService.create(db, user.model_dump())
     if not created_user:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create user")
-    
-    
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create user")
+
     return UserResponse.model_construct(
         id=created_user.id,
         bio=created_user.bio,
@@ -150,7 +156,7 @@ async def create_user(user: UserCreate, request: Request, db: AsyncSession = Dep
 
 
 @router.get("/users/", response_model=UserListResponse, name="list_users", tags=["User Management"])
-async def list_users(request: Request, skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_async_db), token: str = Depends(oauth2_scheme)):
+async def list_users(request: Request, skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_async_db), token: str = Depends(http_bearer_scheme)):
     total_users = await UserService.count(db)
     users = await UserService.list_users(db, skip=skip, limit=limit)
 
@@ -167,7 +173,8 @@ async def list_users(request: Request, skip: int = 0, limit: int = 10, db: Async
         links=create_user_links(user.id, request)
     ) for user in users]
 
-    pagination_links = generate_pagination_links(request, skip, limit, total_users)
+    pagination_links = generate_pagination_links(
+        request, skip, limit, total_users)
     pagination = EnhancedPagination(
         page=skip // limit + 1,
         per_page=limit,
@@ -186,21 +193,26 @@ async def register(user_data: UserCreate, session: AsyncSession = Depends(get_as
         return user
     raise HTTPException(status_code=400, detail="Username already exists")
 
+
 @router.post("/login/")
 async def login(login_request: LoginRequest, session: AsyncSession = Depends(get_async_db)):
     if await UserService.is_account_locked(session, login_request.username):
-        raise HTTPException(status_code=400, detail="Account locked due to too many failed login attempts.")
+        raise HTTPException(
+            status_code=400, detail="Account locked due to too many failed login attempts.")
 
     user = await UserService.login_user(session, login_request.username, login_request.password)
     if user:
         # Generate a token for the user. You need to implement create_access_token.
-        access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
-    
+        access_token_expires = timedelta(
+            minutes=settings.access_token_expire_minutes)
+
         # Generate an access token
         access_token = create_access_token(
-        data={"sub": user.username},  # 'sub' (subject) field to identify the user
-        expires_delta=access_token_expires
-    )
+            # 'sub' (subject) field to identify the user
+            data={"sub": user.username},
+            expires_delta=access_token_expires
+        )
 
         return {"access_token": access_token, "token_type": "bearer"}
-    raise HTTPException(status_code=401, detail="Incorrect username or password.")
+    raise HTTPException(
+        status_code=401, detail="Incorrect username or password.")
