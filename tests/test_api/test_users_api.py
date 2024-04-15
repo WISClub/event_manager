@@ -115,4 +115,38 @@ async def test_delete_user_does_not_exist(async_client, token):
     headers = {"Authorization": f"Bearer {token}"}
     delete_response = await async_client.delete(f"/users/{non_existent_user_id}", headers=headers)
     assert delete_response.status_code == 404
+    
+@pytest.mark.asyncio   
+async def test_update_user_invalid_data(async_client, user, token):
+    updated_data = {"email": "invalid_email"}  # Invalid email format
+    headers = {"Authorization": f"Bearer {token}"}
+    response = await async_client.put(f"/users/{user.id}", json=updated_data, headers=headers)
+    assert response.status_code == 422
 
+@pytest.mark.asyncio
+async def test_update_user_unauthorized(async_client, user):
+    updated_data = {"email": "updated@example.com"}
+    # No token provided, unauthorized access attempt
+    response = await async_client.put(f"/users/{user.id}", json=updated_data)
+    assert response.status_code == 401
+    
+@pytest.mark.asyncio
+async def test_delete_user_invalid_id(async_client, token):
+    invalid_user_id = "invalid_id"
+    headers = {"Authorization": f"Bearer {token}"}
+    delete_response = await async_client.delete(f"/users/{invalid_user_id}", headers=headers)
+    assert delete_response.status_code == 422
+    
+@pytest.mark.asyncio
+async def test_retrieve_user_unauthenticated(async_client, user):
+    response = await async_client.get(f"/users/{user.id}")
+    assert response.status_code == 401
+    assert "Not authenticated" in response.json()["detail"]
+
+@pytest.mark.asyncio
+async def test_delete_user_missing_token(async_client, user):
+    # Attempt to delete a user without providing a token
+    response = await async_client.delete(f"/users/{user.id}")
+    # Asserts
+    assert response.status_code == 401
+    assert "Not authenticated" in response.json()["detail"]
