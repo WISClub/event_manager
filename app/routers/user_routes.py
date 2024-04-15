@@ -37,7 +37,7 @@ http_bearer_scheme = HTTPBearer()
 settings = get_settings()
 
 
-def validate_jwt(token: str = Depends(http_bearer_scheme)):
+async def validate_jwt(token: str = Depends(http_bearer_scheme), db: AsyncSession = Depends(get_async_db)):
     """
     Validate the JWT token.
 
@@ -52,6 +52,7 @@ def validate_jwt(token: str = Depends(http_bearer_scheme)):
     """
     try:
         def decode_token_to_payload(token: str):
+            # todo: get the user and check if uuid is in db
             # Decode the token to payload
             payload = token.split('.')[1]
             # Apply padding. Add = until length is multiple of 4
@@ -61,14 +62,15 @@ def validate_jwt(token: str = Depends(http_bearer_scheme)):
             decoded_payload = base64.b64decode(payload)
             decoded_token = json.loads(decoded_payload.decode("utf-8"))
             return decoded_token
-        payload = decode_token_to_payload(token.credentials)
-
-        print("--------------")
-        print(payload)
-        print("--------------")
-        return payload
     except Exception as e:
         raise HTTPException(status_code=401, detail="Invalid token")
+    payload = decode_token_to_payload(token.credentials)
+    data = await UserService.get_by_username(db, username=payload['sub'])
+    data = data.__dict__
+    if data["is_locked"] == True:
+        raise HTTPException(
+            status_code=400, detail="Account locked due to too many failed login attempts.")
+    return payload
 
 
 @ router.get("/users/{user_id}", response_model=UserResponse, name="get_user", tags=["User Management"])
@@ -193,7 +195,7 @@ async def create_user(user: UserCreate, request: Request, db: AsyncSession = Dep
 
 @ router.get("/users/", response_model=UserListResponse, name="list_users", tags=["User Management"])
 async def list_users(request: Request, skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_async_db), token: str = Depends(http_bearer_scheme)):
-    validate_jwt(token)
+    await validate_jwt(token, db)
     total_users = await UserService.count(db)
     users = await UserService.list_users(db, skip=skip, limit=limit)
 
