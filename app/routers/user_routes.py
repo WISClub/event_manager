@@ -30,12 +30,48 @@ from app.services.user_service import UserService
 from app.utils.common import create_access_token
 from app.utils.link_generation import create_user_links, generate_pagination_links
 from app.dependencies import get_settings
+import json
+import base64
 router = APIRouter()
 http_bearer_scheme = HTTPBearer()
 settings = get_settings()
 
 
-@router.get("/users/{user_id}", response_model=UserResponse, name="get_user", tags=["User Management"])
+def validate_jwt(token: str = Depends(http_bearer_scheme)):
+    """
+    Validate the JWT token.
+
+    This function is a dependency that validates the JWT token extracted from the Authorization header.
+    If the token is invalid or expired, it raises an HTTPException with status code 401.
+
+    Args:
+        token (str): The JWT token extracted from the Authorization header.
+
+    Returns:
+        str: The validated token.
+    """
+    try:
+        def decode_token_to_payload(token: str):
+            # Decode the token to payload
+            payload = token.split('.')[1]
+            # Apply padding. Add = until length is multiple of 4
+            while len(payload) % 4 != 0:
+                payload += "="
+
+            decoded_payload = base64.b64decode(payload)
+            decoded_token = json.loads(decoded_payload.decode("utf-8"))
+            return decoded_token
+        payload = decode_token_to_payload(token.credentials)
+
+        print("--------------")
+        print(payload)
+        print("--------------")
+        return payload
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+@ router.get("/users/{user_id}", response_model=UserResponse, name="get_user", tags=["User Management"])
 async def get_user(user_id: UUID, request: Request, db: AsyncSession = Depends(get_async_db), token: str = Depends(http_bearer_scheme)):
     """
     Endpoint to fetch a user by their unique identifier (UUID).
@@ -72,7 +108,7 @@ async def get_user(user_id: UUID, request: Request, db: AsyncSession = Depends(g
 # experience by adhering to REST principles and providing self-discoverable operations.
 
 
-@router.put("/users/{user_id}", response_model=UserResponse, name="update_user", tags=["User Management"])
+@ router.put("/users/{user_id}", response_model=UserResponse, name="update_user", tags=["User Management"])
 async def update_user(user_id: UUID, user_update: UserUpdate, request: Request, db: AsyncSession = Depends(get_async_db), token: str = Depends(http_bearer_scheme)):
     """
     Update user information.
@@ -100,7 +136,7 @@ async def update_user(user_id: UUID, user_update: UserUpdate, request: Request, 
     )
 
 
-@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT, name="delete_user", tags=["User Management"])
+@ router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT, name="delete_user", tags=["User Management"])
 async def delete_user(user_id: UUID, db: AsyncSession = Depends(get_async_db), token: str = Depends(http_bearer_scheme)):
     """
     Delete a user by their ID.
@@ -114,7 +150,7 @@ async def delete_user(user_id: UUID, db: AsyncSession = Depends(get_async_db), t
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.post("/users/", response_model=UserResponse, status_code=status.HTTP_201_CREATED, tags=["User Management"], name="create_user")
+@ router.post("/users/", response_model=UserResponse, status_code=status.HTTP_201_CREATED, tags=["User Management"], name="create_user")
 async def create_user(user: UserCreate, request: Request, db: AsyncSession = Depends(get_async_db), token: str = Depends(http_bearer_scheme)):
     """
     Create a new user.
@@ -155,8 +191,9 @@ async def create_user(user: UserCreate, request: Request, db: AsyncSession = Dep
     )
 
 
-@router.get("/users/", response_model=UserListResponse, name="list_users", tags=["User Management"])
+@ router.get("/users/", response_model=UserListResponse, name="list_users", tags=["User Management"])
 async def list_users(request: Request, skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_async_db), token: str = Depends(http_bearer_scheme)):
+    validate_jwt(token)
     total_users = await UserService.count(db)
     users = await UserService.list_users(db, skip=skip, limit=limit)
 
@@ -186,7 +223,7 @@ async def list_users(request: Request, skip: int = 0, limit: int = 10, db: Async
     return UserListResponse(items=user_responses, pagination=pagination)
 
 
-@router.post("/register/", response_model=UserResponse)
+@ router.post("/register/", response_model=UserResponse)
 async def register(user_data: UserCreate, session: AsyncSession = Depends(get_async_db)):
     user = await UserService.register_user(session, user_data.dict())
     if user:
@@ -194,7 +231,7 @@ async def register(user_data: UserCreate, session: AsyncSession = Depends(get_as
     raise HTTPException(status_code=400, detail="Username already exists")
 
 
-@router.post("/login/")
+@ router.post("/login/")
 async def login(login_request: LoginRequest, session: AsyncSession = Depends(get_async_db)):
     if await UserService.is_account_locked(session, login_request.username):
         raise HTTPException(
