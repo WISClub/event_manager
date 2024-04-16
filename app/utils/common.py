@@ -43,6 +43,11 @@ def create_access_token(data: dict, expires_delta: timedelta):
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
     return encoded_jwt
 
+def create_refresh_token(data: dict):
+    encoded_jwt = jwt.encode(data, settings.secret_key, algorithm=settings.algorithm)
+    return encoded_jwt  
+
+
 def validate_and_sanitize_url(url_str):
     """
     Validates a given URL string and returns a sanitized version if valid.
