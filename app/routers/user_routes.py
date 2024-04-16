@@ -69,7 +69,7 @@ async def validate_jwt(token: str = Depends(http_bearer_scheme), db: AsyncSessio
         raise HTTPException(status_code=401, detail="Invalid token")
     if not data:
         raise HTTPException(status_code=401, detail="Invalid token")
-    data = dict(data) or {}
+    data = data.__dict__
     if data["is_locked"] == True:
         raise HTTPException(
             status_code=400, detail="Account locked due to too many failed login attempts.")
