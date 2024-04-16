@@ -62,11 +62,14 @@ async def validate_jwt(token: str = Depends(http_bearer_scheme), db: AsyncSessio
             decoded_payload = base64.b64decode(payload)
             decoded_token = json.loads(decoded_payload.decode("utf-8"))
             return decoded_token
+
+        payload = decode_token_to_payload(token.credentials)
+        data = await UserService.get_by_username(db, username=payload['sub'])
     except Exception as e:
         raise HTTPException(status_code=401, detail="Invalid token")
-    payload = decode_token_to_payload(token.credentials)
-    data = await UserService.get_by_username(db, username=payload['sub'])
-    data = data.__dict__
+    if not data:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    data = dict(data) or {}
     if data["is_locked"] == True:
         raise HTTPException(
             status_code=400, detail="Account locked due to too many failed login attempts.")
@@ -87,6 +90,7 @@ async def get_user(user_id: UUID, request: Request, db: AsyncSession = Depends(g
         db: Dependency that provides an AsyncSession for database access.
         token: The OAuth2 access token obtained through OAuth2PasswordBearer dependency.
     """
+    await validate_jwt(token, db)
     user = await UserService.get_by_id(db, user_id)
     if not user:
         raise HTTPException(
@@ -118,6 +122,7 @@ async def update_user(user_id: UUID, user_update: UserUpdate, request: Request, 
     - **user_id**: UUID of the user to update.
     - **user_update**: UserUpdate model with updated user information.
     """
+    await validate_jwt(token, db)
     user_data = user_update.model_dump(exclude_unset=True)
     updated_user = await UserService.update(db, user_id, user_data)
     if not updated_user:
@@ -169,6 +174,7 @@ async def create_user(user: UserCreate, request: Request, db: AsyncSession = Dep
     Returns:
     - UserResponse: The newly created user's information along with navigation links.
     """
+    await validate_jwt(token, db)
     existing_user = await UserService.get_by_username(db, user.username)
     if existing_user:
         raise HTTPException(

@@ -102,6 +102,10 @@ async def refresh_access_token(token: str = Depends(http_bearer_scheme)):
 
     def validate_refresh_token(token: str):
         try:
+            # check if token is valid
+            if not token:
+                raise HTTPException(status_code=401, detail="Invalid token")
+
             def decode_token_to_payload(token: str):
                 # todo: get the user and check if uuid is in db
                 # Decode the token to payload
@@ -113,10 +117,10 @@ async def refresh_access_token(token: str = Depends(http_bearer_scheme)):
                 decoded_payload = base64.b64decode(payload)
                 decoded_token = json.loads(decoded_payload.decode("utf-8"))
                 return decoded_token
+            decoded_token = decode_token_to_payload(token)
         except Exception as e:
             raise HTTPException(status_code=401, detail="Invalid token")
-        decoded_token = decode_token_to_payload(token)
         return decoded_token
     token_data = validate_refresh_token(token.credentials)
-    new_r_t = create_refresh_token(token_data)
-    return {"refresh_token": str(new_r_t)}
+    new = create_refresh_token(token_data)
+    return {"refresh_token": str(token_data)}
