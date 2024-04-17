@@ -35,20 +35,18 @@ Password Security: The UserCreate model enforces strong password policies using 
 Data Serialization and Deserialization: Pydantic handles the secure conversion of data between JSON and Python objects, mitigating risks associated with manual serialization and deserialization.
 Overall, the use of Pydantic models in this file contributes to building a secure, validated, and well-documented API for user-related operations in a FastAPI application. The combination of type annotations, regex-based validators, and inheritance promotes code reusability, maintainability, and adherence to security best practices.
 """
-# Import required libraries and modules
-from datetime import datetime, timezone  # Provides classes for manipulating dates and times in both simple and complex ways.
-from urllib.parse import urlparse  # Functions for breaking down and reconstructing URLs.
-from pydantic import BaseModel, EmailStr, Field, HttpUrl, validator  # Pydantic is used for data validation and settings management using Python type annotations.
-from typing import List, Optional  # Standard library typing module, used for constructing complex type hints.
-from app.schemas.link_schema import Link  # Custom module, likely provides a schema for links (part of HATEOAS).
-from app.schemas.pagination_schema import EnhancedPagination  # Custom pagination schema supporting enriched functionality.
-import re  # Provides regular expression matching operations.
-import uuid  # Provides immutable UUID objects and functions for generating new UUIDs.
+from datetime import datetime, timezone
+from urllib.parse import urlparse
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, validator
+from typing import List, Optional
+from app.schemas.link_schema import Link
+from app.schemas.pagination_schema import EnhancedPagination
+import re
+import uuid
 
-# Define a base user model with common attributes
 class UserBase(BaseModel):
     username: str = Field(
-        ...,  # Ellipsis is used to indicate that the field is required.
+        ...,
         min_length=3,
         max_length=50,
         description="The unique username of the user. Must be 3-50 characters long. Only letters, numbers, underscores, and hyphens are allowed.",
@@ -77,7 +75,6 @@ class UserBase(BaseModel):
         example="https://example.com/profile_pictures/john_doe.jpg"
     )
 
-    # Validators are used to validate the data
     @validator('username')
     def validate_username(cls, v):
         if not re.match(r"^[a-zA-Z0-9_-]+$", v):
@@ -111,7 +108,6 @@ class UserBase(BaseModel):
             }
         }
 
-# Define a model for creating new user accounts with additional attributes like password
 class UserCreate(UserBase):
     password: str = Field(
         ...,
@@ -147,7 +143,6 @@ class UserCreate(UserBase):
             }
         }
 
-# Define a model for updating user information with optional fields
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = Field(
         None,
@@ -171,11 +166,12 @@ class UserUpdate(BaseModel):
         description="An updated URL to the user's profile picture.",
         example="https://example.com/profile_pictures/john_doe_updated.jpg"
     )
-
+ 
     @validator('profile_picture_url', pre=True, always=True)
     def validate_profile_picture_url(cls, v):
         if v is not None:
             parsed_url = urlparse(str(v))  # Convert the URL object to a string before parsing
+            # Ensure the validation logic only runs when parsed_url is defined
             if not re.search(r"\.(jpg|jpeg|png)$", parsed_url.path):
                 raise ValueError("Profile picture URL must point to a valid image file (JPEG, PNG).")
         return v
@@ -191,7 +187,6 @@ class UserUpdate(BaseModel):
             }
         }
 
-# Define a model for the user response, which includes fields populated during queries
 class UserResponse(UserBase):
     id: str = Field(
         ...,
@@ -253,7 +248,6 @@ class UserResponse(UserBase):
             }
         }
 
-# Define a model for paginated list of user responses, including pagination details
 class UserListResponse(BaseModel):
     items: List[UserResponse] = Field(
         ...,
@@ -315,7 +309,6 @@ class UserListResponse(BaseModel):
             }
         }
 
-# Define a model for user login requests
 class LoginRequest(BaseModel):
     username: str = Field(
         ...,
@@ -337,7 +330,6 @@ class LoginRequest(BaseModel):
             }
         }
 
-# Define a model for error responses in case of issues
 class ErrorResponse(BaseModel):
     error: str = Field(
         ...,
