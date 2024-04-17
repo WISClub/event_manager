@@ -60,9 +60,24 @@ To complete this assignment, submit the following:
   - All issues should be merged into the main branch, following the Git workflow and best practices.
 
 2. **Updated README**: Replace the existing README with:
-  - Links to the closed issues, providing easy access to your work.
-  - Link to project image deployed to Dockerhub.
-  - A 2-3 paragraph reflection on what you learned from this assignment, focusing on both technical skills and collaborative processes. Reflect on the challenges you faced, the solutions you implemented, and the insights you gained. This reflection helps solidify your learning and provides valuable feedback for improving the assignment in the future.
+   1. https://github.com/EDS435/event_manager/issues/14
+   2. https://github.com/EDS435/event_manager/issues/12
+   3. https://github.com/EDS435/event_manager/issues/10
+   4. https://github.com/EDS435/event_manager/issues/8
+   5. https://github.com/EDS435/event_manager/issues/6
+   6. https://github.com/EDS435/event_manager/issues/4 (demo test #1)
+   7. https://github.com/EDS435/event_manager/issues/1 (demo test #2)
+
+  ![alt text](<Screenshot 2024-04-16 233050.png>)
+
+  ![alt text](<Screenshot 2024-04-16 233123.png>)
+
+  ![alt text](<Screenshot 2024-04-16 233146.png>)
+
+  Generally speaking this assignment had taught me two things, trying to find the root of the code issues and how to leverage AI when it came to testing code. First, I want to talk about finding the roots of my issues, the tests I had created primarily focused on testing whether the data the user had placed within the system were invalid. My first few tests were apparently already present within the code so I had decided to shift into deleting data that was unauthorized and updating old data that was no longer considered valid. These tests were rather simple but hard to implement as I was receiving assertion errors whenever I tried to run the test but eventually I had found a way to make sure my tests run easier.
+
+  Which brings me to my second point, for all my skepticism AI (specifically ChatGpt) was incredibly helpful in managing the changes I needed to make in my code. ChatGpt essentially had cleaned up most of the errors that I had created and made sure I wasn't facing assertion errors, and if there were any errors present I had to just give it a more detailed explanation of the error plus the code in order for it to make the proper adjustments. While I did have my doubts what would have been an all nighter or two was cut down to two days of back and forth and managing my own mistakes.
+
 
 ## Grading Rubric
 
