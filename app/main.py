@@ -1,8 +1,10 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.database import initialize_async_db
 from app.dependencies import get_settings
 from app.routers import oauth, user_routes
 from app.utils.common import setup_logging
+
 
 # This function sets up logging based on the configuration specified in your logging configuration file.
 setup_logging()
@@ -25,8 +27,18 @@ app = FastAPI(
     license_info={
         "name": "Apache 2.0",
         "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
-    }
+    },
 )
+
+# Set up CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
 @app.on_event("startup")
 def startup_event():
     initialize_async_db(settings.database_url)
